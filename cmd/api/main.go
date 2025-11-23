@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/alohrasbi/greenlight/internal/data"
 	_ "github.com/lib/pq"
 )
 
@@ -39,11 +40,11 @@ type config struct {
 }
 
 // Define an application struct to hold the dependencies for our HTTP handlers, helpers,
-// and middleware. At the moment this only contains a copy of the config struct and a
-// logger, but it will grow to include a lot more as our build progresses.
+// and middleware.
 type application struct {
 	config config
 	logger *slog.Logger
+	models data.Models
 }
 
 func main() {
@@ -57,7 +58,7 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	// Read the DSN value from the db-dsn command-line flag into the config struct. We
 	// default to using our development DSN if no flag is provided.
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://greenlight:pa55word@localhost/greenlight?sslmode=disable", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://greenlight:example@localhost/greenlight?sslmode=disable", "PostgreSQL DSN")
 
 	// Read the connection pool settings from command-line flags into the config struct.
 	// Notice that the default values we're using are the ones we discussed above?
@@ -91,6 +92,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 
 	// // Declare a new servemux and add a /v1/healthcheck route which dispatches requests
