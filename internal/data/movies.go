@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/alohrasbi/greenlight/internal/data/validator"
@@ -213,4 +214,87 @@ func (m MovieModel) Delete(id int64) error {
 	}
 
 	return nil
+}
+
+// Create a new GetAll() method which returns a slice of movies. Although we're not
+// using them right now, we've set this up to accept the various filter parameters as
+// arguments.
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+	// Construct the SQL query to retrieve all movie records.
+	// Use full-text search for the title filter. (plainto_tsquery('simple', $1), plainto_tsquery('english', $1))
+	// Add an ORDER BY clause and interpolate the sort column and direction. Importantly
+	// notice that we also include a secondary sort on the movie ID to ensure a
+	// consistent ordering.
+	// Update the SQL query to include the LIMIT and OFFSET clauses with placeholder
+	// parameter values.
+	// Update the SQL query to include the window function which counts the total
+	// (filtered) records.
+	query := fmt.Sprintf(`
+        SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version
+        FROM movies
+        WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
+        AND (genres @> $2 OR $2 = '{}')     
+        ORDER BY %s %s, id ASC
+        LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortDirection())
+
+	// Create a context with a 3-second timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	// we call the limit() and
+	// offset() methods on the Filters struct to get the appropriate values for the
+	// LIMIT and OFFSET clauses.
+	args := []any{title, pq.Array(genres), filters.limit(), filters.offset()}
+
+	// Use QueryContext() to execute the query. This returns a sql.Rows resultset
+	// containing the result.
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+
+	// Importantly, defer a call to rows.Close() to ensure that the resultset is closed
+	// before GetAll() returns.
+	defer rows.Close()
+
+	// Declare a totalRecords variable.
+	totalRecords := 0
+	// Initialize an empty slice to hold the movie data.
+	movies := []*Movie{}
+
+	// Use rows.Next to iterate through the rows in the resultset.
+	for rows.Next() {
+		// Initialize an empty Movie struct to hold the data for an individual movie.
+		var movie Movie
+
+		// Scan the values from the row into the Movie struct. Again, note that we're
+		// using the pq.Array() adapter on the genres field here.
+		err := rows.Scan(
+			&totalRecords, // Scan the count from the window function into totalRecords.
+			&movie.ID,
+			&movie.CreatedAt,
+			&movie.Title,
+			&movie.Year,
+			&movie.Runtime,
+			pq.Array(&movie.Genres),
+			&movie.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+
+		// Add the Movie struct to the slice.
+		movies = append(movies, &movie)
+	}
+
+	// When the rows.Next() loop has finished, call rows.Err() to retrieve any error
+	// that was encountered during the iteration.
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+
+	// Generate a Metadata struct, passing in the total record count and pagination
+	// parameters from the client.
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	// If everything went OK, then return the slice of movies.
+	return movies, metadata, nil
 }
