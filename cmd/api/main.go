@@ -4,9 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"time"
 
@@ -79,7 +77,7 @@ func main() {
 	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
-	
+
 	flag.Parse()
 
 	// Initialize a new structured logger which writes log entries to the standard out
@@ -114,24 +112,12 @@ func main() {
 	// mux := http.NewServeMux()
 	// mux.HandleFunc("/v1/healthcheck", app.healthcheckHandler)
 
-	// Declare a HTTP server which listens on the port provided in the config struct,
-	// uses the servemux we created above as the handler, has some sensible timeout
-	// settings and writes any log messages to the structured logger at Error level.
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	// Call app.serve() to start the server.
+	err = app.serve()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
-
-	// Start the HTTP server.
-	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
-
-	err = srv.ListenAndServe()
-	logger.Error(err.Error())
-	os.Exit(1)
 }
 
 // The openDB() function returns a sql.DB connection pool.
