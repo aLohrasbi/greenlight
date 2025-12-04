@@ -1,0 +1,17 @@
+# Blocking access to application metrics using IP
+http://IP {
+  respond /debug/* "Not Permitted" 403
+  reverse_proxy localhost:4000
+}
+
+# Set the email address that should be used to contact you if there is a problem with 
+# your TLS certificates.
+# {
+#   email you@example.com
+# }
+
+# Remove the http:// prefix from your site address.
+# example.com {
+#   respond /debug/* "Not Permitted" 403
+#   reverse_proxy localhost:4000
+# }
