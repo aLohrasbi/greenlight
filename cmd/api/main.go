@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"runtime"
@@ -14,13 +15,13 @@ import (
 
 	"github.com/alohrasbi/greenlight/internal/data"
 	"github.com/alohrasbi/greenlight/internal/data/mailer"
+	"github.com/alohrasbi/greenlight/internal/data/vcs"
 	_ "github.com/lib/pq"
 )
 
-// Declare a string containing the application version number. Later in the book we'll
-// generate this automatically at build time, but for now we'll just store the version
-// number as a hard-coded global constant.
-const version = "1.0.0"
+var (
+	version = vcs.Version()
+)
 
 // Define a config struct to hold all the configuration settings for our application.
 // For now, the only configuration settings will be the network port that we want the
@@ -84,7 +85,7 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	// Read the DSN value from the db-dsn command-line flag into the config struct. We
 	// default to using our development DSN if no flag is provided.
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://greenlight:example@localhost/greenlight?sslmode=disable", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "PostgreSQL DSN")
 
 	// Read the connection pool settings from command-line flags into the config struct.
 	// Notice that the default values we're using are the ones we discussed above?
@@ -119,8 +120,17 @@ func main() {
 		return nil
 	})
 
+	// Create a new version boolean flag with the default value of false.
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+
 	flag.Parse()
 
+	// If the version flag value is true, then print out the version number and
+	// immediately exit.
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		os.Exit(0)
+	}
 	// Initialize a new structured logger which writes log entries to the standard out
 	// stream.
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
