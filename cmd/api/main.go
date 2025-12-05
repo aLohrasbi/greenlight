@@ -107,7 +107,7 @@ func main() {
 	flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "SMTP port")
 	flag.StringVar(&cfg.smtp.username, "smtp-username", "865f9260cc1be9", "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "a6ee6e92f008d8", "SMTP password")
-	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.com>", "SMTP sender")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@example.com>", "SMTP sender")
 
 	// Use the flag.Func() function to process the -cors-trusted-origins command line
 	// flag. In this we use the strings.Fields() function to split the flag value into a
