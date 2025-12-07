@@ -41,7 +41,6 @@ func (app *application) routes() http.Handler {
 
 	// We should limit the access to this endpoint in our development env.
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
-	// Wrap the router with the panic recovery middleware.
-	// Wrap the router with the rateLimit() middleware.
+	// Wrap the router with middlewares.
 	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router)))))
 }

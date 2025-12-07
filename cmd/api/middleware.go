@@ -64,6 +64,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 
 	// 	next.ServeHTTP(w, r)
 	// })
+
 	// IP based Rate Limit:
 	// Define a client struct to hold the rate limiter and last seen time for each
 	// client.
@@ -76,7 +77,6 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 		mu sync.Mutex
 		// Update the map so the values are pointers to a client struct.
 		clients = make(map[string]*client)
-		// clients = make(map[string]*rate.Limiter)
 	)
 	// Launch a background goroutine which removes old entries from the clients map once
 	// every minute.
@@ -96,7 +96,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 				}
 			}
 
-			// Importantly, unlock the mutex when the cleanup is complete.
+			// Unlock the mutex when the cleanup is complete.
 			mu.Unlock()
 		}
 	}()
@@ -121,7 +121,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 			clients[ip].lastSeen = time.Now()
 			// Call the Allow() method on the rate limiter for the current IP address. If
 			// the request isn't allowed, unlock the mutex and send a 429 Too Many Requests
-			// response, just like before.
+			// response.
 			if !clients[ip].limiter.Allow() {
 				mu.Unlock()
 				app.rateLimitExceededResponse(w, r)
@@ -161,8 +161,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		// Otherwise, we expect the value of the Authorization header to be in the format
 		// "Bearer <token>". We try to split this into its constituent parts, and if the
 		// header isn't in the expected format we return a 401 Unauthorized response
-		// using the invalidAuthenticationTokenResponse() helper (which we will create
-		// in a moment).
+		// using the invalidAuthenticationTokenResponse() helper.
 		headerParts := strings.Split(authorizationHeader, " ")
 		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
 			app.invalidAuthenticationTokenResponse(w, r)
@@ -185,7 +184,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 
 		// Retrieve the details of the user associated with the authentication token,
 		// again calling the invalidAuthenticationTokenResponse() helper if no
-		// matching record was found. IMPORTANT: Notice that we are using
+		// matching record was found. Notice that we are using
 		// ScopeAuthentication as the first parameter here.
 		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
 		if err != nil {
@@ -211,41 +210,20 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 // anonymous.
 func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Use the contextGetUser() helper to retrieve the user information from the request context.
 		user := app.contextGetUser(r)
 
+		// If the user is anonymous, then call the authenticationRequiredResponse() to
+		// inform the client that they should authenticate before trying again.
 		if user.IsAnonymous() {
 			app.authenticationRequiredResponse(w, r)
 			return
 		}
-
+		// Call the next handler in the chain.
 		next.ServeHTTP(w, r)
 	})
 }
 
-// func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		// Use the contextGetUser() helper that we made earlier to retrieve the user
-// 		// information from the request context.
-// 		user := app.contextGetUser(r)
-
-// 		// If the user is anonymous, then call the authenticationRequiredResponse() to
-// 		// inform the client that they should authenticate before trying again.
-// 		if user.IsAnonymous() {
-// 			app.authenticationRequiredResponse(w, r)
-// 			return
-// 		}
-
-// 		// If the user is not activated, use the inactiveAccountResponse() helper to
-// 		// inform them that they need to activate their account.
-// 		if !user.Activated {
-// 			app.inactiveAccountResponse(w, r)
-// 			return
-// 		}
-
-//			// Call the next handler in the chain.
-//			next.ServeHTTP(w, r)
-//		})
-//	}
 
 // Checks that a user is both authenticated and activated.
 func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {

@@ -7,7 +7,7 @@ set -eu
 
 # Set the timezone for the server. A full list of available timezones can be found by 
 # running timedatectl list-timezones.
-TIMEZONE=Europe/Berlin
+TIMEZONE=Europe/Helsinki
 
 # Set the name of the new user to create.
 USERNAME=greenlight
@@ -55,7 +55,7 @@ ufw --force enable
 apt --yes install fail2ban
 
 # Install the migrate CLI tool.
-curl -L https://github.com/golang-migrate/migrate/releases/download/v4.14.1/migrate.linux-amd64.tar.gz | tar xvz
+curl -L https://github.com/golang-migrate/migrate/releases/download/v4.19.1/migrate.linux-amd64.tar.gz | tar xvz
 mv migrate.linux-amd64 /usr/local/bin/migrate
 
 # Install PostgreSQL.

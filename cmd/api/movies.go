@@ -9,13 +9,11 @@ import (
 	"github.com/alohrasbi/greenlight/internal/data/validator"
 )
 
-// Add a createMovieHandler for the "POST /v1/movies" endpoint. For now we simply
-// return a plain-text placeholder response.
+// Add a createMovieHandler for the "POST /v1/movies" endpoint. 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	// Declare an anonymous struct to hold the information that we expect to be in the
 	// HTTP request body (note that the field names and types in the struct are a subset
-	// of the Movie struct that we created earlier). This struct will be our *target
-	// decode destination*.
+	// of the Movie struct. This struct will be our *target decode destination. 
 	var input struct {
 		Title   string       `json:"title"`
 		Year    int32        `json:"year"`
@@ -23,13 +21,6 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		Genres  []string     `json:"genres"`
 	}
 
-	// Initialize a new json.Decoder instance which reads from the request body, and
-	// then use the Decode() method to decode the body contents into the input struct.
-	// Importantly, notice that when we call Decode() we pass a *pointer* to the input
-	// struct as the target decode destination. If there was an error during decoding,
-	// we also use our generic errorResponse() helper to send the client a 400 Bad
-	// Request response containing the error message.
-	// err := json.NewDecoder(r.Body).Decode(&input)
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
@@ -45,13 +36,6 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	// Initialize a new Validator instance.
 	v := validator.New()
 
-	// Use the Valid() method to see if any of the checks failed. If they did, then use
-	// the failedValidationResponse() helper to send a response to the client, passing
-	// in the v.Errors map.
-	// if !v.Valid() {
-	// 	app.failedValidationResponse(w, r, v.Errors)
-	// 	return
-	// }
 	// Call the ValidateMovie() function and return a response containing the errors if
 	// any of the checks fail.
 	if data.ValidateMovie(v, movie); !v.Valid() {
@@ -66,7 +50,6 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-
 	// When sending a HTTP response, we want to include a Location header to let the
 	// client know which URL they can find the newly-created resource at. We make an
 	// empty http.Header map and then use the Set() method to add a new Location header,
@@ -82,45 +65,14 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// Add a showMovieHandler for the "GET /v1/movies/:id" endpoint. For now, we retrieve
-// the interpolated "id" parameter from the current URL and include it in a placeholder
-// response.
+// Add a showMovieHandler for the "GET /v1/movies/:id" endpoint. 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
-	// When httprouter is parsing a request, any interpolated URL parameters will be
-	// stored in the request context. We can use the ParamsFromContext() function to
-	// retrieve a slice containing these parameter names and values.
-	// params := httprouter.ParamsFromContext(r.Context())
-
-	// We can then use the ByName() method to get the value of the "id" parameter from
-	// the slice. In our project all movies will have a unique positive integer ID, but
-	// the value returned by ByName() is always a string. So we try to convert it to a
-	// base 10 integer (with a bit size of 64). If the parameter couldn't be converted,
-	// or is less than 1, we know the ID is invalid so we use the http.NotFound()
-	// function to return a 404 Not Found response.
-	// id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
-	// if err != nil || id < 1 {
-	//     http.NotFound(w, r)
-	//     return
-	// }
 
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
-
-	// Create a new instance of the Movie struct, containing the ID we extracted from
-	// the URL and some dummy data. Also notice that we deliberately haven't set a
-	// value for the Year field.
-	// movie := data.Movie{
-	// 	ID:        id,
-	// 	CreatedAt: time.Now(),
-	// 	Title:     "Casablanca",
-	// 	Runtime:   102,
-	// 	Genres:    []string{"drama", "romance", "war"},
-	// 	Version:   1,
-	// }
-
 	// Call the Get() method to fetch the data for a specific movie. We also need to
 	// use the errors.Is() function to check if it returns a data.ErrRecordNotFound
 	// error, in which case we send a 404 Not Found response to the client.
@@ -178,12 +130,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Copy the values from the request body to the appropriate fields of the movie
-	// record.
-	// movie.Title = input.Title
-	// movie.Year = input.Year
-	// movie.Runtime = input.Runtime
-	// movie.Genres = input.Genres
+
 	// If the input.Title value is nil then we know that no corresponding "title" key/
 	// value pair was provided in the JSON request body. So we move on and leave the
 	// movie record unchanged. Otherwise, we update the movie record with the new title
@@ -281,30 +228,17 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	input.Title = app.readString(qs, "title", "")
 	input.Genres = app.readCSV(qs, "genres", []string{})
 
-	// Get the page and page_size query string values as integers. Notice that we set
-	// the default page value to 1 and default page_size to 20, and that we pass the
-	// validator instance as the final argument here.
-	// input.Page = app.readInt(qs, "page", 1, v)
-	// input.PageSize = app.readInt(qs, "page_size", 20, v)
-
-	// Extract the sort query string value, falling back to "id" if it is not provided
-	// by the client (which will imply a ascending sort on movie ID).
-	// input.Sort = app.readString(qs, "sort", "id")
-	// Read the page and page_size query string values into the embedded struct.
+	// Get the page and page_size query string values into the embedded struct.
+	// Notice that we set the default page value to 1 and default page_size to 20, and
+	// that we pass the validator instance as the final argument here.
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
 
-	// Read the sort query string value into the embedded struct.
+	// Extract the sort query string value, falling back to "id" if it is not provided
+	// by the client (which will imply a ascending sort on movie ID).
 	input.Filters.Sort = app.readString(qs, "sort", "id")
 	// Add the supported sort values for this endpoint to the sort safelist.
 	input.Filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
-
-	// Check the Validator instance for any errors and use the failedValidationResponse()
-	// helper to send the client a response if necessary.
-	// if !v.Valid() {
-	// 	app.failedValidationResponse(w, r, v.Errors)
-	// 	return
-	// }
 
 	// Execute the validation checks on the Filters struct and send a response
 	// containing the errors if necessary.
@@ -312,7 +246,7 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	// Dump the contents of the input struct in a HTTP response.
+	
 	// fmt.Fprintf(w, "%+v\n", input)
 
 	// Call the GetAll() method to retrieve the movies, passing in the various filter

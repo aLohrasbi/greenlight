@@ -17,8 +17,17 @@ import (
 // Retrieve the "id" URL parameter from the current request context, then convert it to
 // an integer and return it. If the operation isn't successful, return 0 and an error.
 func (app *application) readIDParam(r *http.Request) (int64, error) {
+	// When httprouter is parsing a request, any interpolated URL parameters will be
+	// stored in the request context. We can use the ParamsFromContext() function to
+	// retrieve a slice containing these parameter names and values.
 	params := httprouter.ParamsFromContext(r.Context())
 
+	// We can then use the ByName() method to get the value of the "id" parameter from
+	// the slice. In our project all movies will have a unique positive integer ID, but
+	// the value returned by ByName() is always a string. So we try to convert it to a
+	// base 10 integer (with a bit size of 64). If the parameter couldn't be converted,
+	// or is less than 1, we know the ID is invalid so we use the http.NotFound()
+	// function to return a 404 Not Found response.
 	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
 	if err != nil || id < 1 {
 		return 0, errors.New("invalid id parameter")
@@ -56,9 +65,8 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	for key, value := range headers {
 		w.Header()[key] = value
 	}
+	// or we can use iterators like:
 	//maps.Copy(w.Header(), headers)
-	// the code below is the equivelent of the code above
-	// iterator
 	// maps.Insert(w.Header(), maps.All(headers))
 
 	// Add the "Content-Type: application/json" header, then write the status code and
@@ -119,7 +127,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 		// instead.
 		case errors.Is(err, io.EOF):
 			return errors.New("body must not be empty")
-			// If the JSON contains a field which cannot be mapped to the target destination
+		// If the JSON contains a field which cannot be mapped to the target destination
 		// then Decode() will now return an error message in the format "json: unknown
 		// field "<name>"". We check for this, extract the field name from the error,
 		// and interpolate it into our custom error message. Note that there's an open
@@ -144,7 +152,8 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 		default:
 			return err
 		}
-	} // Call Decode() again, using a pointer to an empty anonymous struct as the
+	}
+	// Call Decode() again, using a pointer to an empty anonymous struct as the
 	// destination. If the request body only contained a single JSON value this will
 	// return an io.EOF error. So if we get anything else, we know that there is
 	// additional data in the request body and we return our own custom error message.
