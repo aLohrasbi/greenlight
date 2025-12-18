@@ -31,16 +31,20 @@ To simplify the PostgreSQL setup we can use docker:
 docker run --name greenlight-db -e POSTGRES_PASSWORD=example -e POSTGRES_USER=greenlight -e POSTGRES_DB=greenlight -p 5432:5432 -v greenlight-data:/var/lib/postgresql -d postgres
 ```
 This command sets up a PostgreSQL instance that has the same DSN as the default one provided.
-This command is for PostgreSQL version 18 and above due to changes to [PGDATA variable](https://hub.docker.com/_/postgres#pgdata).
+
+(This command is for PostgreSQL version 18 and above due to changes to [PGDATA variable](https://hub.docker.com/_/postgres#pgdata).)
 
 #### 3. Run the Application
 We use a Makefile to handle migrations and execution:
+```bash
 make run/api
+```
 
 ## Production
-We can configure an Ubuntu server (or most Debian-based distros) by executing the shell script located at /remote/setup/01.sh like:
-
+We can configure an Ubuntu server (or most Debian-based distros) by executing the shell script located at `/remote/setup/01.sh` like:
+```bash
 bash /remote/setup/01.sh
+```
 At a high level the setup script does the following things:
 
 - Update all packages on the server.
@@ -61,7 +65,7 @@ At a high level the setup script does the following things:
 > docker run --name greenlight-db -e POSTGRES_PASSWORD=example -e POSTGRES_USER=greenlight -e POSTGRES_DB=greenlight -p 5432:5432 -v greenlight-data:/var/lib/postgresql -d postgres
 > ```
 > > This commands sets up a PostgreSQL instance that has the same DSN as the default one provided.
-> This command is for PostgreSQL version 18 and above due to changes to [PGDATA variable](https://hub.docker.com/_/postgres#pgdata).
+> > (This command is for PostgreSQL version 18 and above due to changes to [PGDATA variable](https://hub.docker.com/_/postgres#pgdata).)
 
 - Install the `migrate` tool, using the [pre-built binaries](https://github.com/golang-migrate/migrate/releases) from GitHub.
 
