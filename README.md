@@ -1,5 +1,6 @@
 # Greenlight API
 This is a slightly modified implementation of the _Let's Go Further!_ book project. (by Alex Edwards)
+
 It includes a variety of features such as:
   - CRUD Operations and JSON Error Handling
   - Input and Data Validation
